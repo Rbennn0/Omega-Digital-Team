@@ -1,1 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meadow House Repairs</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Meadow House Repairs</h1>
+    <p>Report a repair, follow its progress and see what was done. All data here is fictional.</p>
+  </header>
+
+  <!-- Live region: announce() writes here. Keep it near the top so it is easy to find. -->
+  <div id="status-message" role="status" aria-live="polite" tabindex="-1"></div>
+
+  <main>
+    <section id="report-form" aria-labelledby="report-heading">
+      <!-- Person 2 renders the form here -->
+    </section>
+
+    <section id="job-list" aria-labelledby="jobs-heading">
+      <!-- Person 3/4 render the jobs here -->
+    </section>
+  </main>
+
+  <!-- SCRIPT ORDER: replace these names with the load order in CONTRACT.md -->
+  <script src="storage.js"></script>
+  <script src="validation.js"></script>
+  <script src="jobs.js"></script>
+  <script src="render.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
 
