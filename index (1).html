@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meadow House Repairs</title>
+<style>
+  :root {
+    --page: #eef2f0;
+    --card: #ffffff;
+    --ink: #18221f;
+    --muted: #46544f;
+    --line: #c3cfc9;
+    --green: #1f5c4d;
+    --green-dark: #17463b;
+    --error: #a1160c;
+    --error-bg: #fdeceb;
+    --focus: #0b57d0;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 16px/1.5 var(--sans); overflow-wrap: anywhere;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 48px; }
+  header { padding: 28px 0 8px; }
+  h1, h2, h3 { font-family: var(--serif); line-height: 1.2; margin: 0; }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.4rem; margin-bottom: 12px; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1rem; margin: 16px 0 6px; }
+  header p { margin: 8px 0 0; color: var(--muted); max-width: 60ch; }
+
+  /* Status banner: sticky so confirmations are always in view */
+  #status-message {
+    position: sticky; top: 0; z-index: 10; margin: 12px 0;
+    padding: 12px 14px; border-radius: 8px; border: 2px solid transparent; font-weight: 600;
+  }
+  #status-message:empty { display: none; }
+  #status-message.status-ok { background: #dff2e8; color: #0b3d2a; border-color: #2e7d5b; }
+  #status-message.status-error { background: var(--error-bg); color: var(--error); border-color: var(--error); }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-top: 16px; }
+
+  label { display: block; font-weight: 600; margin: 14px 0 4px; }
+  .hint { display: block; font-weight: 400; color: var(--muted); font-size: 0.875rem; }
+  input, textarea, select {
+    width: 100%; font: inherit; color: var(--ink); background: #fff;
+    border: 2px solid #6b7b75; border-radius: 6px; padding: 10px 12px; min-height: 44px;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  [aria-invalid="true"] { border-color: var(--error); background: var(--error-bg); }
+  .error { color: var(--error); font-weight: 600; font-size: 0.9375rem; margin: 6px 0 0; }
+  .error:empty { display: none; }
+
+  button {
+    font: inherit; font-weight: 600; min-height: 44px; padding: 8px 18px; border-radius: 6px;
+    border: 2px solid var(--green); background: var(--green); color: #fff; cursor: pointer; margin-top: 14px;
+  }
+  button:hover { background: var(--green-dark); border-color: var(--green-dark); }
+  button.secondary { background: #fff; color: var(--green); }
+  button.secondary:hover { background: #e6f0ec; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  /* Jobs */
+  .job {
+    background: var(--card); border: 1px solid var(--line); border-left: 8px solid #3d5f95;
+    border-radius: 10px; padding: 18px 20px; margin-top: 16px;
+  }
+  .job.s-progress { border-left-color: #b57b00; }
+  .job.s-completed { border-left-color: #2e7d5b; }
+  .job-head { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: space-between; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge { font-size: 0.875rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; }
+  .b-new { background: #e4ecf7; color: #1c3c6e; }
+  .b-progress { background: #fff1cf; color: #5c3d00; }
+  .b-completed { background: #dff2e8; color: #0e4a2e; }
+  .b-normal { background: #f0f2f1; color: #33403b; }
+  .b-urgent { background: var(--error-bg); color: #8a130a; }
+
+  dl { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+  dt { font-weight: 600; color: var(--muted); }
+  dd { margin: 0; white-space: pre-wrap; }
+  .note-box { margin-top: 12px; padding: 10px 12px; background: #f4f7f6; border-radius: 6px; white-space: pre-wrap; }
+  .note-box strong { display: block; font-size: 0.875rem; color: var(--muted); }
+  .done-box { background: #e9f6ef; border: 1px solid #2e7d5b; }
+
+  ol.history { list-style: none; margin: 0; padding: 0; border-left: 3px solid var(--line); }
+  ol.history li { padding: 4px 0 10px 14px; white-space: pre-wrap; }
+  ol.history .when { display: block; font-size: 0.875rem; color: var(--muted); }
+  .actions { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 4px; }
+  .empty { color: var(--muted); margin-top: 16px; }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.6rem; }
+    .panel, .job { padding: 14px; }
+    dl { grid-template-columns: 1fr; gap: 0; }
+    dd { margin-bottom: 8px; }
+    button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Meadow House Repairs</h1>
+    <p>Report a repair, follow its progress and see what was done. All names and details here are fictional.</p>
+  </header>
+
+  <div id="status-message" role="status" aria-live="polite" tabindex="-1"></div>
+
+  <main>
+    <section id="report-form" class="panel" aria-labelledby="report-heading">
+      <h2 id="report-heading">Report a repair</h2>
+      <form id="repair-form" novalidate>
+        <label for="description">Description of the repair
+          <span class="hint">What needs fixing, and where?</span></label>
+        <textarea id="description" name="description" aria-describedby="description-error" autocomplete="off"></textarea>
+        <p class="error" id="description-error"></p>
+
+        <label for="reporter">Reporter name</label>
+        <input id="reporter" name="reporter" type="text" aria-describedby="reporter-error" autocomplete="off">
+        <p class="error" id="reporter-error"></p>
+
+        <label for="priority">Priority</label>
+        <select id="priority" name="priority">
+          <option value="Normal">Normal</option>
+          <option value="Urgent">Urgent</option>
+        </select>
+
+        <button type="submit">Report repair</button>
+      </form>
+    </section>
+
+    <section id="job-list" aria-labelledby="jobs-heading">
+      <h2 id="jobs-heading" style="margin-top:28px">Repair jobs <span id="job-count" class="hint" style="display:inline"></span></h2>
+      <div id="job-items"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'meadowHouseRepairs.v1';
+  var HOUSE = 'Meadow House';
+  var jobs = load();
+
+  /* ---------- storage ---------- */
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      var data = raw ? JSON.parse(raw) : [];
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(jobs)); return true; }
+    catch (e) { announce('Your browser could not save this change. Check that storage is allowed.', true); return false; }
+  }
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+
+  // Build elements with textContent only, so typed text is never read as HTML.
+  function el(tag, props, text) {
+    var node = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function (k) { node.setAttribute(k, props[k]); });
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function announce(message, isError) {
+    var box = $('status-message');
+    box.textContent = '';
+    setTimeout(function () {
+      box.textContent = message;
+      box.className = isError ? 'status-error' : 'status-ok';
+    }, 40);
+  }
+
+  function fmt(iso) {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+
+  function nextId() {
+    var max = 0;
+    jobs.forEach(function (j) {
+      var n = parseInt(String(j.id).replace(/\D/g, ''), 10);
+      if (n > max) max = n;
+    });
+    return 'MH-' + String(max + 1).padStart(4, '0');
+  }
+
+  function findJob(id) {
+    for (var i = 0; i < jobs.length; i++) if (jobs[i].id === id) return jobs[i];
+    return null;
+  }
+
+  function setError(input, errBox, message) {
+    input.setAttribute('aria-invalid', 'true');
+    errBox.textContent = message;
+  }
+  function clearError(input, errBox) {
+    input.removeAttribute('aria-invalid');
+    errBox.textContent = '';
+  }
+
+  function focusJob(id) {
+    var card = $('job-' + id);
+    if (card) card.focus();
+  }
+
+  /* ---------- report form ---------- */
+  $('repair-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var desc = $('description'), rep = $('reporter'), pri = $('priority');
+    var d = desc.value.trim(), r = rep.value.trim();
+    var firstBad = null;
+
+    if (!d) { setError(desc, $('description-error'), 'Enter a description of the repair. It cannot be blank or only spaces.'); firstBad = firstBad || desc; }
+    else clearError(desc, $('description-error'));
+
+    if (!r) { setError(rep, $('reporter-error'), 'Enter the reporter name. It cannot be blank or only spaces.'); firstBad = firstBad || rep; }
+    else clearError(rep, $('reporter-error'));
+
+    if (firstBad) {
+      announce('Repair not reported. Fix the highlighted field and try again. Your other answers are kept.', true);
+      firstBad.focus();
+      return;
+    }
+
+    var now = new Date().toISOString();
+    var job = {
+      id: nextId(), house: HOUSE, description: d, reporter: r, priority: pri.value,
+      status: 'New', createdAt: now, latestNote: '', completionNote: '',
+      history: [{ at: now, label: 'Reported', text: 'Repair reported by ' + r + ' as ' + pri.value + ' priority.' }]
+    };
+    jobs.push(job);
+    if (!save()) { jobs.pop(); return; }
+
+    $('repair-form').reset();
+    renderJobs();
+    announce('Repair reported. ' + job.id + ' is now listed below as a New job (' + job.priority + ' priority).');
+    focusJob(job.id);
+  });
+
+  /* ---------- job actions ---------- */
+  function moveToInProgress(id) {
+    var job = findJob(id); if (!job || job.status !== 'New') return;
+    job.status = 'In Progress';
+    job.history.push({ at: new Date().toISOString(), label: 'Moved to In Progress', text: 'Status changed from New to In Progress.' });
+    if (!save()) return;
+    renderJobs();
+    announce(job.id + ' is now In Progress.');
+    focusJob(id);
+  }
+
+  function saveProgressNote(id, ta, errBox) {
+    var job = findJob(id); if (!job || job.status !== 'In Progress') return;
+    var text = ta.value.trim();
+    if (!text) {
+      setError(ta, errBox, 'Enter a progress note. It cannot be blank or only spaces.');
+      announce('Progress note not saved for ' + id + '. Enter a note and try again.', true);
+      ta.focus(); return;
+    }
+    job.latestNote = text;
+    job.history.push({ at: new Date().toISOString(), label: 'Progress note', text: text });
+    if (!save()) return;
+    renderJobs();
+    announce('Progress note saved for ' + id + '. It now shows as the latest note.');
+    focusJob(id);
+  }
+
+  function completeJob(id, ta, errBox) {
+    var job = findJob(id); if (!job || job.status === 'Completed') return;
+    var text = ta.value.trim();
+    if (!text) {
+      setError(ta, errBox, 'Enter a completion note describing what was done. It cannot be blank or only spaces.');
+      announce(id + ' was not completed. Its status, notes and history are unchanged.', true);
+      ta.focus(); return;
+    }
+    job.status = 'Completed';
+    job.completionNote = text;
+    job.history.push({ at: new Date().toISOString(), label: 'Completed', text: text });
+    if (!save()) return;
+    renderJobs();
+    announce(id + ' is now Completed. The completion note is shown on the job.');
+    focusJob(id);
+  }
+
+  /* ---------- rendering ---------- */
+  function noteForm(job, kind) {
+    var isDone = kind === 'complete';
+    var form = el('form', { novalidate: '' });
+    var taId = (isDone ? 'complete-' : 'progress-') + job.id;
+    var errId = taId + '-error';
+    form.appendChild(el('label', { 'for': taId }, isDone ? 'Completion note' : 'Progress note'));
+    var ta = el('textarea', { id: taId, 'aria-describedby': errId, autocomplete: 'off' });
+    var err = el('p', { 'class': 'error', id: errId });
+    form.appendChild(ta); form.appendChild(err);
+    form.appendChild(el('button', { type: 'submit', 'class': isDone ? '' : 'secondary' }, isDone ? 'Mark completed' : 'Save progress note'));
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (isDone) completeJob(job.id, ta, err); else saveProgressNote(job.id, ta, err);
+    });
+    ta.addEventListener('input', function () { clearError(ta, err); });
+    return form;
+  }
+
+  function jobCard(job) {
+    var cls = job.status === 'In Progress' ? 's-progress' : job.status === 'Completed' ? 's-completed' : '';
+    var badgeCls = job.status === 'In Progress' ? 'b-progress' : job.status === 'Completed' ? 'b-completed' : 'b-new';
+    var card = el('article', { 'class': 'job ' + cls, id: 'job-' + job.id, tabindex: '-1', 'aria-labelledby': 'title-' + job.id });
+
+    var head = el('div', { 'class': 'job-head' });
+    head.appendChild(el('h3', { id: 'title-' + job.id }, 'Job ' + job.id));
+    var badges = el('div', { 'class': 'badges' });
+    badges.appendChild(el('span', { 'class': 'badge ' + badgeCls }, 'Status: ' + job.status));
+    badges.appendChild(el('span', { 'class': 'badge ' + (job.priority === 'Urgent' ? 'b-urgent' : 'b-normal') }, job.priority + ' priority'));
+    head.appendChild(badges);
+    card.appendChild(head);
+
+    var dl = el('dl');
+    [['Description', job.description], ['Reported by', job.reporter], ['House', job.house], ['Reported on', fmt(job.createdAt)]]
+      .forEach(function (p) { dl.appendChild(el('dt', null, p[0])); dl.appendChild(el('dd', null, p[1])); });
+    card.appendChild(dl);
+
+    if (job.latestNote) {
+      var ln = el('div', { 'class': 'note-box' }); ln.appendChild(el('strong', null, 'Latest progress note'));
+      ln.appendChild(document.createTextNode(job.latestNote)); card.appendChild(ln);
+    }
+    if (job.status === 'Completed') {
+      var cn = el('div', { 'class': 'note-box done-box' }); cn.appendChild(el('strong', null, 'Completion note'));
+      cn.appendChild(document.createTextNode(job.completionNote)); card.appendChild(cn);
+    }
+
+    card.appendChild(el('h4', null, 'History'));
+    var ol = el('ol', { 'class': 'history' });
+    job.history.forEach(function (h) {
+      var li = el('li');
+      li.appendChild(el('span', { 'class': 'when' }, fmt(h.at) + ' \u2013 ' + h.label));
+      li.appendChild(document.createTextNode(h.text));
+      ol.appendChild(li);
+    });
+    card.appendChild(ol);
+
+    if (job.status !== 'Completed') {
+      var actions = el('div', { 'class': 'actions' });
+      if (job.status === 'New') {
+        var b = el('button', { type: 'button', 'class': 'secondary' }, 'Move to In Progress');
+        b.addEventListener('click', function () { moveToInProgress(job.id); });
+        actions.appendChild(b);
+      } else {
+        actions.appendChild(noteForm(job, 'progress'));
+      }
+      actions.appendChild(noteForm(job, 'complete'));
+      card.appendChild(actions);
+    }
+    return card;
+  }
+
+  function renderJobs() {
+    var box = $('job-items');
+    box.textContent = '';
+    $('job-count').textContent = jobs.length ? '(' + jobs.length + ')' : '';
+    if (!jobs.length) {
+      box.appendChild(el('p', { 'class': 'empty' }, 'No repairs reported yet. Use the form above to report the first one.'));
+      return;
+    }
+    jobs.slice().reverse().forEach(function (j) { box.appendChild(jobCard(j)); });
+  }
+
+  // Clear field errors as the person corrects them.
+  $('description').addEventListener('input', function () { clearError(this, $('description-error')); });
+  $('reporter').addEventListener('input', function () { clearError(this, $('reporter-error')); });
+
+  renderJobs();
+})();
+</script>
+</body>
+</html>
